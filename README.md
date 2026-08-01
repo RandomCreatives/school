@@ -97,10 +97,14 @@ not a foundation.
   **"generate sections (all subjects × terms)"** admin action per class, with
   teacher assignment any time after. Enforced in the DB: one current year, one
   homeroom per teacher per year, unique class/subject/term offerings.
-- **M3 — Attendance & gradebook.** Homeroom teacher's morning attendance sheet
-  (one tap per student), assessment + score entry, per-student term averages.
-  *Done when:* a teacher takes roll in under a minute and we can show a
-  student's term report.
+- **M3 — Attendance & gradebook.** ✅ Homeroom teacher's morning roll sheet
+  (opens on today, everyone defaults to *present*, mark exceptions only, one
+  save — past days editable within the year), per-section gradebook:
+  assessments with weight + max score, one-screen score entry per assessment,
+  interim weighted averages normalized to 100, and a per-student report
+  (subject × term averages + year attendance summary). Access rules enforced
+  and tested: homeroom teacher for roll, assigned teacher for gradebook,
+  office staff everywhere.
 - **M4 — Reports & hardening.** Term report card (PDF), admin dashboard,
   backups, deployment guide, role-permission audit.
 - **Stretch (post-v1).** Parent/student read-only portal, Amharic localization,
@@ -132,7 +136,8 @@ pip install -r requirements-dev.txt
 
 python manage.py migrate
 python manage.py createsuperuser
-python manage.py runserver        # admin at http://127.0.0.1:8000/admin/
+python manage.py runserver        # admin at /admin/, teacher UI at /
+                                  # (log in at /accounts/login/)
 
 pytest                            # run the test suite
 ruff check .                      # lint

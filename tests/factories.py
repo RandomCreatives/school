@@ -2,11 +2,15 @@ from datetime import date
 
 import factory
 from django.contrib.auth import get_user_model
+from django.utils import timezone
 
 from core.models import (
     AcademicYear,
+    Assessment,
+    AttendanceRecord,
     Enrollment,
     SchoolClass,
+    Score,
     Section,
     Student,
     Subject,
@@ -84,3 +88,33 @@ class EnrollmentFactory(factory.django.DjangoModelFactory):
 
     student = factory.SubFactory(StudentFactory)
     school_class = factory.SubFactory(SchoolClassFactory)
+
+
+class AttendanceRecordFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = AttendanceRecord
+
+    school_class = factory.SubFactory(SchoolClassFactory)
+    student = factory.SubFactory(StudentFactory)
+    date = factory.LazyFunction(timezone.localdate)
+    status = AttendanceRecord.Status.PRESENT
+    taken_by = factory.SubFactory(TeacherFactory)
+
+
+class AssessmentFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Assessment
+
+    section = factory.SubFactory(SectionFactory)
+    name = factory.Sequence(lambda n: f"Assessment {n}")
+    weight = 1
+    max_score = 100
+
+
+class ScoreFactory(factory.django.DjangoModelFactory):
+    class Meta:
+        model = Score
+
+    assessment = factory.SubFactory(AssessmentFactory)
+    student = factory.SubFactory(StudentFactory)
+    value = 80

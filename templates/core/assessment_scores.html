@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Enter scores · {{ assessment.name }}{% endblock %}
+{% block content %}
+<h1>{{ assessment.name }} — {{ section }}</h1>
+<p class="muted">
+  Out of {{ assessment.max_score }} · weight {{ assessment.weight }}
+  {% if assessment.date %} · {{ assessment.date }}{% endif %}<br>
+  Leave a box empty to remove that student's score.
+</p>
+
+{% if rows %}
+<form method="post">
+  {% csrf_token %}
+  <table>
+    <thead><tr><th>Student</th><th>Score /{{ assessment.max_score }}</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.student.full_name }} <span class="muted">({{ row.student.student_id }})</span></td>
+        <td>
+          <input class="score-input" type="number" step="any" min="0"
+                 max="{{ assessment.max_score }}" name="score-{{ row.student.id }}"
+                 value="{{ row.value }}">
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="actions">
+    <button class="btn primary" type="submit">Save scores</button>
+    <a class="btn" href="{% url 'core:gradebook' section.id %}">Back to gradebook</a>
+  </div>
+</form>
+{% else %}
+<p class="notice">No active students are enrolled in {{ section.school_class.name }} yet.</p>
+{% endif %}
+{% endblock %}

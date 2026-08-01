@@ -267,3 +267,103 @@ class Enrollment(models.Model):
     def sections(self):
         """The sections this enrollment places the student in (derived)."""
         return self.school_class.sections.select_related("subject", "term", "teacher")
+
+
+class AttendanceRecord(models.Model):
+    """One student's attendance for one morning, taken by the homeroom
+    ("main") teacher. A full class sheet is stored — including "present"
+    rows — so an absent sheet means roll simply wasn't taken that day."""
+
+    class Status(models.TextChoices):
+        PRESENT = "present", "Present"
+        ABSENT = "absent", "Absent"
+        LATE = "late", "Late"
+        EXCUSED = "excused", "Excused"
+
+    school_class = models.ForeignKey(
+        SchoolClass, on_delete=models.CASCADE, related_name="attendance_records"
+    )
+    student = models.ForeignKey(
+        Student, on_delete=models.CASCADE, related_name="attendance_records"
+    )
+    date = models.DateField()
+    status = models.CharField(max_length=10, choices=Status.choices)
+    note = models.CharField(max_length=200, blank=True)
+    taken_by = models.ForeignKey(
+        Teacher,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="attendance_taken",
+        help_text="The teacher who saved the sheet; empty if entered by office staff.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-date", "student__last_name", "student__first_name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student", "date"], name="unique_attendance_per_day"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.student} · {self.date} · {self.get_status_display()}"
+
+
+class Assessment(models.Model):
+    """A named graded item within a section ("Quiz 1", "Midterm", …).
+
+    Scores are stored raw against ``max_score``; the 100-point subject grade
+    is derived at aggregation time (see services.section_weighted_averages).
+    """
+
+    section = models.ForeignKey(Section, on_delete=models.CASCADE, related_name="assessments")
+    name = models.CharField(max_length=100)
+    date = models.DateField(null=True, blank=True)
+    weight = models.PositiveSmallIntegerField(
+        default=1,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        help_text="Relative weight of this assessment within the term.",
+    )
+    max_score = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=100,
+        validators=[MinValueValidator(1)],
+        help_text="What a perfect score is (100 by school policy).",
+    )
+
+    class Meta:
+        ordering = ["date", "id"]
+
+    def __str__(self):
+        return f"{self.name} · {self.section}"
+
+
+class Score(models.Model):
+    """One student's raw score on one assessment."""
+
+    assessment = models.ForeignKey(Assessment, on_delete=models.CASCADE, related_name="scores")
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name="scores")
+    value = models.DecimalField(
+        max_digits=5, decimal_places=2, validators=[MinValueValidator(0)]
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["assessment", "student__last_name"]
+        constraints = [
+            models.UniqueConstraint(fields=["assessment", "student"], name="unique_score")
+        ]
+
+    def __str__(self):
+        return f"{self.student} · {self.assessment.name} · {self.value}"
+
+    def clean(self):
+        super().clean()
+        if self.assessment_id and self.value is not None and self.value > self.assessment.max_score:
+            raise ValidationError(
+                {"value": f"Cannot exceed the assessment maximum ({self.assessment.max_score})."}
+            )

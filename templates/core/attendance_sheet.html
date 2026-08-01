@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Attendance · {{ school_class.name }}{% endblock %}
+{% block content %}
+<h1>Attendance — {{ school_class }}</h1>
+
+<form class="daypicker" method="get">
+  <label>Date <input type="date" name="date" value="{{ on_date|date:'Y-m-d' }}"
+                     max="{{ today|date:'Y-m-d' }}"></label>
+  <button class="btn" type="submit">Go</button>
+</form>
+
+{% if not editable %}
+  <p class="notice">This date is outside the school year or in the future — view only.</p>
+{% elif taken %}
+  <p class="notice ok">Roll already saved for this date; you can update it below.</p>
+{% endif %}
+
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="date" value="{{ on_date|date:'Y-m-d' }}">
+  <table>
+    <thead>
+      <tr>
+        <th>Student</th>
+        {% for value, label in statuses %}<th>{{ label }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.student.full_name }} <span class="muted">({{ row.student.student_id }})</span></td>
+        {% for value, label in statuses %}
+        <td><input type="radio" name="status-{{ row.student.id }}" value="{{ value }}"
+                   {% if row.status == value %}checked{% endif %}
+                   {% if not editable %}disabled{% endif %}></td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if editable %}
+  <div class="actions">
+    <button class="btn" type="button" onclick="markAll('present')">All present</button>
+    <button class="btn primary" type="submit">Save attendance</button>
+  </div>
+  <script>
+    function markAll(status) {
+      document.querySelectorAll('input[type="radio"][value="' + status + '"]')
+        .forEach(function (radio) { radio.checked = true; });
+    }
+  </script>
+  {% endif %}
+</form>
+{% endblock %}
