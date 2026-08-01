@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Report · {{ student.full_name }}{% endblock %}
+{% block content %}
+<h1>{{ student.full_name }} <span class="muted">({{ student.student_id }})</span></h1>
+
+{% if report %}
+<p>
+  Report card (PDF):
+  {% for term in terms %}
+    <a href="{% url 'core:report-card-pdf' student.id term.id %}">Term {{ term.number }}</a>
+  {% endfor %}
+</p>
+{% endif %}
+
+{% if report %}
+<p class="muted">
+  {{ report.enrollment.school_class.name }} · {{ year }}
+  {% if report.enrollment.school_class.homeroom_teacher %}
+    · Homeroom: {{ report.enrollment.school_class.homeroom_teacher }}{% endif %}
+</p>
+
+<div class="card">
+  <h2>Attendance this year</h2>
+  <p>
+    {% for row in summary_rows %}
+      <span class="badge {% if row.key == 'present' %}taken{% else %}missing{% endif %}">
+        {{ row.label }}: {{ row.count }}</span>
+    {% endfor %}
+  </p>
+</div>
+
+<div class="card">
+  <h2>Subject averages /100</h2>
+  <table>
+    <thead>
+      <tr><th>Subject</th><th>Term 1</th><th>Term 2</th><th>Term 3</th></tr>
+    </thead>
+    <tbody>
+      {% for row in report.rows %}
+      <tr>
+        <td>{{ row.subject.name }}</td>
+        {% for avg in row.averages %}
+        <td>
+          {% if avg != None %}<span class="avg">{{ avg }}</span>
+          {% else %}<span class="muted">—</span>{% endif %}
+        </td>
+        {% endfor %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if not report.rows %}<p class="muted">No sections yet for this class.</p>{% endif %}
+</div>
+<p class="muted">Interim averages (weighted by assessment weight) — final term
+  certification follows the school's own formula.</p>
+{% else %}
+<p class="notice">{{ student.full_name }} is not enrolled in a class for {{ year }}.</p>
+{% endif %}
+{% endblock %}

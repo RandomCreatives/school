@@ -1,0 +1,4 @@
+Django>=5.2,<5.3
+dj-database-url>=2.2
+reportlab>=4.0
+gunicorn>=21  # production server (dev uses runserver)

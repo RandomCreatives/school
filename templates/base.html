@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}School{% endblock %}</title>
+  <style>
+    :root { --line: #e2e2e2; --ink: #1c1c1c; --muted: #666; --accent: #1d4ed8; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink);
+           margin: 0; background: #f7f7f8; }
+    header.nav { display: flex; align-items: center; gap: 1rem; padding: .7rem 1.2rem;
+                 background: #fff; border-bottom: 1px solid var(--line); }
+    header.nav .brand { font-weight: 700; text-decoration: none; color: var(--ink); }
+    header.nav .spacer { flex: 1; }
+    header.nav a { color: var(--accent); text-decoration: none; }
+    header.nav form.inline { display: inline; margin: 0; }
+    button.linklike { background: none; border: none; color: var(--accent); cursor: pointer;
+                      font: inherit; padding: 0; }
+    main { max-width: 960px; margin: 1.5rem auto; padding: 0 1rem; }
+    h1 { font-size: 1.35rem; } h2 { font-size: 1.05rem; margin-bottom: .4rem; }
+    .card { background: #fff; border: 1px solid var(--line); border-radius: 8px;
+            padding: 1rem 1.2rem; margin-bottom: 1.2rem; }
+    table { width: 100%; border-collapse: collapse; background: #fff; }
+    th, td { text-align: left; padding: .45rem .6rem; border-bottom: 1px solid var(--line); }
+    th { font-size: .8rem; text-transform: uppercase; letter-spacing: .03em; color: var(--muted); }
+    .btn { display: inline-block; padding: .45rem 1rem; border: 1px solid var(--line);
+           border-radius: 6px; background: #fff; cursor: pointer; font: inherit; }
+    .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .actions { margin-top: .9rem; display: flex; gap: .6rem; }
+    ul.messages { list-style: none; padding: 0; }
+    ul.messages li { padding: .6rem .9rem; border-radius: 6px; margin-bottom: .5rem; }
+    ul.messages li.success { background: #dcfce7; color: #14532d; }
+    ul.messages li.error { background: #fee2e2; color: #7f1d1d; }
+    .notice { padding: .6rem .9rem; border-radius: 6px; background: #fef9c3; color: #713f12; }
+    .notice.ok { background: #e0f2fe; color: #0c4a6e; }
+    .muted { color: var(--muted); }
+    .badge { display: inline-block; padding: .12rem .55rem; border-radius: 999px;
+             font-size: .8rem; }
+    .badge.taken { background: #dcfce7; color: #14532d; }
+    .badge.missing { background: #fee2e2; color: #7f1d1d; }
+    input[type="date"], input[type="text"], input[type="number"] { font: inherit;
+           padding: .3rem .45rem; border: 1px solid var(--line); border-radius: 6px; }
+    td input[type="radio"] { transform: scale(1.25); }
+    .score-input { width: 6rem; }
+    form.daypicker { display: flex; gap: .5rem; align-items: center; margin: .6rem 0 .9rem; }
+    .avg { font-weight: 600; }
+  </style>
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="{% url 'core:home' %}">🏫 School</a>
+    <span class="spacer"></span>
+    {% if user.is_authenticated %}
+      {% if user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
+      <span class="muted">{{ user.get_full_name|default:user.username }}</span>
+      <form class="inline" method="post" action="{% url 'logout' %}">
+        {% csrf_token %}<button type="submit" class="linklike">Log out</button>
+      </form>
+    {% endif %}
+  </header>
+  <main>
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+      </ul>
+    {% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

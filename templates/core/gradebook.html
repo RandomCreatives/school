@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Gradebook · {{ section }}{% endblock %}
+{% block content %}
+<h1>Gradebook — {{ section }}</h1>
+<p class="muted">
+  {{ section.subject }} · {{ section.school_class.name }} · {{ section.term }}
+  {% if section.teacher %} · Teacher: {{ section.teacher }}{% else %} · No teacher assigned{% endif %}
+</p>
+
+<div class="card">
+  <details>
+    <summary><strong>Add an assessment</strong></summary>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button class="btn primary" type="submit">Add assessment</button>
+    </form>
+  </details>
+</div>
+
+{% if rows %}
+<div class="card">
+  <h2>Scores</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Student</th>
+        {% for assessment in assessments %}
+        <th>
+          {{ assessment.name }}<br>
+          <span class="muted">w{{ assessment.weight }} · /{{ assessment.max_score }}</span><br>
+          <a href="{% url 'core:assessment-scores' assessment.id %}">Enter scores</a>
+        </th>
+        {% endfor %}
+        <th>Term avg /100</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.student.full_name }}</td>
+        {% for cell in row.cells %}
+        <td>{% if cell != None %}{{ cell }}{% else %}<span class="muted">—</span>{% endif %}</td>
+        {% endfor %}
+        <td class="avg">
+          {% if row.average != None %}{{ row.average }}{% else %}<span class="muted">—</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if not assessments %}
+    <p class="muted">No assessments yet — add one above, then enter scores.</p>
+  {% endif %}
+</div>
+{% else %}
+<p class="notice">No active students are enrolled in {{ section.school_class.name }} yet.</p>
+{% endif %}
+{% endblock %}
