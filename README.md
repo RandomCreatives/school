@@ -27,7 +27,7 @@ and **grade entry**. Everything else is back-office work the Django admin covers
 | Decision | Choice | Why |
 |---|---|---|
 | Framework | Django 5.2 LTS | Auth, ORM, migrations, admin — the domain is 70% data CRUD |
-| Language | Python 3.12+ | Matches Django; easy to hire/learn |
+| Language | Python 3.11+ | Matches Django; easy to hire/learn |
 | Database | SQLite (dev) → Postgres (prod) via `DATABASE_URL` | Zero-setup dev, real DB in prod |
 | UI | Server-rendered Django templates; HTMX only if a screen demands it | No JS build chain to babysit |
 | Auth | Django auth + Groups (`Admin`, `Teacher`) | Built-in, role checks via permissions |
@@ -57,7 +57,7 @@ erDiagram
 
 - **Student** — name, DOB, guardian contact, admission date, status (active/left/graduated).
 - **Teacher** — linked 1:1 to a Django user; subject specialties.
-- **AcademicYear / Term** — e.g. 2026/27 with semesters or quarters (see open questions).
+- **AcademicYear / Term** — e.g. 2026/27 divided into **3 terms** (confirmed with the school).
 - **SchoolClass** — the homeroom group ("Grade 7B") within an academic year.
 - **Subject** — Math, English, … with a code.
 - **Section** — a subject taught to a class by a teacher in a term. Enrolling a
@@ -65,31 +65,37 @@ erDiagram
   enrollment busywork for small schools.
 - **Enrollment** — student ↔ class for a year (the student moves class each year).
 - **Attendance** — one row per student per day with status
-  (present / absent / late / excused), taken per class.
+  (present / absent / late / excused). Taken **once each morning by the
+  homeroom ("main") teacher**, per class — subject teachers don't take roll.
 - **Assessment / Score** — named graded items per section ("Quiz 1", "Midterm",
-  weight + max score), with one score per student.
+  weight + max score), with one score per student, **scored out of 100 per
+  subject**. The school's term-certification formula is its own system (to be
+  shared later), so term aggregation lives behind a single grading-policy seam
+  we can slot their formula into without touching the gradebook. Interim
+  default: weighted average by assessment weight.
 
 ## Roles
 
 | Role | Can do |
 |---|---|
 | Admin (office) | Everything, mostly via Django admin |
-| Teacher | Attendance + grades for *their own* class/sections, via custom views |
+| Teacher | Grades for their own sections, via custom views |
+| Homeroom ("main") teacher | The above, **plus** morning attendance for their class |
 
 Students/parents get **no logins** in v1 — a read-only portal is a stretch goal,
 not a foundation.
 
 ## Milestones
 
-- **M1 — Students & staff slice.** Student + Teacher models, admin setup, CSV
-  import for initial student list, tests. *Done when:* office can add/edit/find
-  students and teachers can log in.
-- **M2 — Academic structure.** Years, terms, classes, subjects, sections,
+- **M1 — Students & staff slice.** ✅ Student + Teacher models, Django admin,
+  idempotent CSV import (`import_students`, with `--dry-run`), pytest suite.
+- **M2 — Academic structure.** Years, terms (3/year), classes, subjects, sections,
   enrollment. *Done when:* enrolling a student in a class auto-places them in the
   right sections.
-- **M3 — Attendance & gradebook.** Teacher's daily attendance sheet (one tap per
-  student), assessment + score entry, per-student term averages. *Done when:* a
-  teacher takes roll in under a minute and we can show a student's term report.
+- **M3 — Attendance & gradebook.** Homeroom teacher's morning attendance sheet
+  (one tap per student), assessment + score entry, per-student term averages.
+  *Done when:* a teacher takes roll in under a minute and we can show a
+  student's term report.
 - **M4 — Reports & hardening.** Term report card (PDF), admin dashboard,
   backups, deployment guide, role-permission audit.
 - **Stretch (post-v1).** Parent/student read-only portal, Amharic localization,
@@ -101,12 +107,34 @@ not a foundation.
 - Small commits, one slice at a time, main branch always green.
 - When we change a decision recorded here, we update this file in the same commit.
 
-## Open questions (need the school's answers)
+## Working defaults adopted
 
-1. **Terms** — semesters, quarters, or trimesters?
-2. **Grading** — 100-point scale with letter bands? Any school-specific policy?
-3. **Attendance** — once daily per class, or per subject period? (Plan assumes daily.)
-4. **Language** — English-only UI at launch, or Amharic needed from day one?
-5. **Report cards** — is a printable PDF term report a requirement for v1?
-6. **Scale** — roughly how many students and teachers? (Informs nothing major, but
-   good to know for import + report design.)
+Answered by the school: **3 terms** per year · **100-point** scale per subject,
+with a school-specific **term-certification formula to be shared later** (kept
+behind a grading-policy seam) · **daily morning attendance** taken by the
+homeroom ("main") teacher.
+
+Defaults for the rest, chosen as sensible and reversible: **English-only UI** at
+launch (templates kept translation-ready so Amharic can be layered on) ·
+**printable PDF report cards** land in M4 · scale assumed at a few hundred
+students / dozens of teachers.
+
+## Getting started
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver        # admin at http://127.0.0.1:8000/admin/
+
+pytest                            # run the test suite
+ruff check .                      # lint
+
+# Load students from CSV (dry-run first, then for real):
+python manage.py import_students data/sample_students.csv --dry-run
+python manage.py import_students data/sample_students.csv
+```
+
+Dev uses SQLite automatically; set `DATABASE_URL` for Postgres in production.

@@ -1,0 +1,6 @@
+student_id,first_name,last_name,date_of_birth,gender,guardian_name,guardian_phone,admission_date
+S0001,Hana,Tesfaye,2013-03-14,F,Tesfaye Alemu,+251911234567,2023-09-11
+S0002,Yonas,Girma,2012-11-02,M,Girma Haile,+251922345678,2022-09-10
+S0003,Meron,Bekele,2013-06-25,F,Bekele Tadesse,+251933456789,2023-09-11
+S0004,Dawit,Alemayehu,2012-01-19,M,Alemayehu Kebede,+251944567890,2022-09-10
+S0005,Sara,Mekonnen,2013-09-08,F,Mekonnen Worku,+251955678901,2023-09-11
