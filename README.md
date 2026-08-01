@@ -148,6 +148,13 @@ python manage.py runserver        # admin at /admin/, teacher UI at /
 pytest                            # run the test suite
 ruff check .                      # lint
 
+# Explore the whole system at once — scaffold a complete demo school
+# (year + 3 terms, grades 1–8 A/B with homeroom teachers, 384 students,
+# 10 days of attendance, two terms of grades):
+python manage.py seed_demo
+# → office / office1234 (office dashboard & admin)
+# → printed teacher username / demo1234 (Grade 7A homeroom teacher)
+
 # Load students from CSV (dry-run first, then for real):
 python manage.py import_students data/sample_students.csv --dry-run
 python manage.py import_students data/sample_students.csv
