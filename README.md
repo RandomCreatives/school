@@ -89,9 +89,14 @@ not a foundation.
 
 - **M1 — Students & staff slice.** ✅ Student + Teacher models, Django admin,
   idempotent CSV import (`import_students`, with `--dry-run`), pytest suite.
-- **M2 — Academic structure.** Years, terms (3/year), classes, subjects, sections,
-  enrollment. *Done when:* enrolling a student in a class auto-places them in the
-  right sections.
+- **M2 — Academic structure.** ✅ Years (auto-creating 3 terms), classes
+  ("Grade 7B" = grade level + letter, scoped to a year), subject catalog,
+  sections, enrollment. Section membership is *derived* from class enrollment —
+  no roster table — so enrolling or transferring a student places them in the
+  right sections automatically. Setup busywork removed by a bulk
+  **"generate sections (all subjects × terms)"** admin action per class, with
+  teacher assignment any time after. Enforced in the DB: one current year, one
+  homeroom per teacher per year, unique class/subject/term offerings.
 - **M3 — Attendance & gradebook.** Homeroom teacher's morning attendance sheet
   (one tap per student), assessment + score entry, per-student term averages.
   *Done when:* a teacher takes roll in under a minute and we can show a
