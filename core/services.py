@@ -10,6 +10,7 @@ from .models import (
     AcademicYear,
     AttendanceRecord,
     Enrollment,
+    SchoolClass,
     Score,
     Section,
     Student,
@@ -129,18 +130,90 @@ def save_attendance(school_class, on_date, statuses: dict[int, str], taken_by=No
     return dict(Counter(statuses.values()))
 
 
-def attendance_summary(student, academic_year) -> dict[str, int]:
-    """Counts per status for a student within an academic year."""
+def attendance_summary_between(student, start_date, end_date) -> dict[str, int]:
+    """Counts per status for a student within a date range."""
     rows = (
-        AttendanceRecord.objects.filter(
-            student=student,
-            date__range=(academic_year.start_date, academic_year.end_date),
-        )
+        AttendanceRecord.objects.filter(student=student, date__range=(start_date, end_date))
         .values("status")
         .annotate(n=Count("id"))
     )
     counts = {row["status"]: row["n"] for row in rows}
     return {value: counts.get(value, 0) for value in AttendanceRecord.Status.values}
+
+
+def attendance_summary(student, academic_year) -> dict[str, int]:
+    """Counts per status for a student within an academic year."""
+    return attendance_summary_between(
+        student, academic_year.start_date, academic_year.end_date
+    )
+
+
+def term_date_range(term):
+    """A term's own dates, falling back to its year's bounds when unset."""
+    return (
+        term.start_date or term.academic_year.start_date,
+        term.end_date or term.academic_year.end_date,
+    )
+
+
+def term_attendance_summary(student, term) -> dict[str, int]:
+    start, end = term_date_range(term)
+    return attendance_summary_between(student, start, end)
+
+
+def student_term_report_card(student, term) -> dict | None:
+    """Report-card content for one term: per-subject averages.
+
+    Returns None if the student has no class in the term's year.
+    """
+    enrollment = (
+        Enrollment.objects.filter(
+            student=student, school_class__academic_year=term.academic_year
+        )
+        .select_related("school_class__homeroom_teacher__user")
+        .first()
+    )
+    if enrollment is None:
+        return None
+    sections = (
+        enrollment.school_class.sections.filter(term=term)
+        .select_related("subject")
+        .order_by("subject__name")
+    )
+    rows = [
+        {"subject": section.subject, "average": section_weighted_averages(section).get(student.id)}
+        for section in sections
+    ]
+    return {"enrollment": enrollment, "rows": rows}
+
+
+# ---------------------------------------------------------------------------
+# Dashboard gaps (what the office needs to chase today)
+# ---------------------------------------------------------------------------
+
+def classes_missing_roll(academic_year, on_date):
+    """Classes in the year with no attendance records for the date."""
+    taken = AttendanceRecord.objects.filter(
+        school_class__academic_year=academic_year, date=on_date
+    ).values_list("school_class_id", flat=True)
+    return SchoolClass.objects.filter(academic_year=academic_year).exclude(pk__in=taken)
+
+
+def sections_missing_assessments(academic_year):
+    """Sections with zero assessments — i.e. grading hasn't started."""
+    return (
+        Section.objects.filter(
+            school_class__academic_year=academic_year, assessments__isnull=True
+        )
+        .select_related("subject", "school_class", "term", "teacher__user")
+        .order_by(
+            "school_class__grade_level",
+            "school_class__letter",
+            "term__number",
+            "subject__name",
+        )
+        .distinct()
+    )
 
 
 # ---------------------------------------------------------------------------

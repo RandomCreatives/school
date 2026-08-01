@@ -14,4 +14,14 @@ urlpatterns = [
         name="assessment-scores",
     ),
     path("students/<int:student_id>/report/", views.student_report, name="student-report"),
+    path(
+        "students/<int:student_id>/report-card/<int:term_id>.pdf",
+        views.report_card_pdf,
+        name="report-card-pdf",
+    ),
+    path(
+        "classes/<int:class_id>/report-cards/<int:term_id>.pdf",
+        views.class_report_cards_pdf,
+        name="class-report-cards-pdf",
+    ),
 ]

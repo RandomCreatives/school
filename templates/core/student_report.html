@@ -4,6 +4,15 @@
 <h1>{{ student.full_name }} <span class="muted">({{ student.student_id }})</span></h1>
 
 {% if report %}
+<p>
+  Report card (PDF):
+  {% for term in terms %}
+    <a href="{% url 'core:report-card-pdf' student.id term.id %}">Term {{ term.number }}</a>
+  {% endfor %}
+</p>
+{% endif %}
+
+{% if report %}
 <p class="muted">
   {{ report.enrollment.school_class.name }} · {{ year }}
   {% if report.enrollment.school_class.homeroom_teacher %}

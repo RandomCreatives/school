@@ -8,13 +8,13 @@
     in the <a href="{% url 'admin:index' %}">admin</a>.</p>
 {% endif %}
 
-{% if homeroom_classes %}
+{% if roll_classes %}
 <div class="card">
   <h2>Morning attendance</h2>
   <table>
-    <thead><tr><th>Homeroom class</th><th>Today's roll</th><th></th></tr></thead>
+    <thead><tr><th>Class</th><th>Today's roll</th><th></th><th>Report cards (PDF)</th></tr></thead>
     <tbody>
-      {% for class in homeroom_classes %}
+      {% for class in roll_classes %}
       <tr>
         <td>{{ class.name }}</td>
         <td>
@@ -22,6 +22,11 @@
           {% else %}<span class="badge missing">not taken</span>{% endif %}
         </td>
         <td><a href="{% url 'core:attendance-sheet' class.id %}">Open roll sheet</a></td>
+        <td>
+          {% for term in terms %}
+            <a href="{% url 'core:class-report-cards-pdf' class.id term.id %}">T{{ term.number }}</a>
+          {% endfor %}
+        </td>
       </tr>
       {% endfor %}
     </tbody>
@@ -47,12 +52,30 @@
 {% endif %}
 
 {% if user.is_staff %}
-<div class="card">
-  <h2>Office</h2>
-  <p>{{ active_students }} active students · <a href="{% url 'admin:index' %}">Open the admin</a>
-     to manage students, classes, subjects and staff.</p>
-</div>
-{% elif not homeroom_classes and not sections %}
+  {% if missing_assessments %}
+  <div class="card">
+    <h2>Sections without grades yet</h2>
+    <table>
+      <thead><tr><th>Section</th><th>Teacher</th><th></th></tr></thead>
+      <tbody>
+        {% for section in missing_assessments %}
+        <tr>
+          <td>{{ section }}</td>
+          <td>{{ section.teacher|default:"—" }}</td>
+          <td><a href="{% url 'core:gradebook' section.id %}">Open gradebook</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <h2>Office</h2>
+    <p>{{ active_students }} active students · <a href="{% url 'admin:index' %}">Open the admin</a>
+       to manage students, classes, subjects and staff.</p>
+  </div>
+{% elif not roll_classes and not sections %}
 <div class="card">
   <p>Your account isn't linked to any class or section yet — please contact the office.</p>
 </div>

@@ -152,3 +152,81 @@ class TestStudentReport:
     def test_office_admin_allowed(self, client, school):
         admin = UserFactory(is_staff=True)
         assert login(client, admin).get(self.url(school)).status_code == 200
+
+
+@pytest.mark.django_db
+class TestReportCardPdfs:
+    def term_id(self, school):
+        return school.year.terms.get(number=1).id
+
+    def student_url(self, school):
+        return reverse(
+            "core:report-card-pdf",
+            args=[school.students[0].id, self.term_id(school)],
+        )
+
+    def class_url(self, school):
+        return reverse(
+            "core:class-report-cards-pdf",
+            args=[school.school_class.id, self.term_id(school)],
+        )
+
+    def test_student_card_downloads_for_homeroom_teacher(self, client, school):
+        response = login(client, school.teacher.user).get(self.student_url(school))
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/pdf"
+        assert school.students[0].student_id in response["Content-Disposition"]
+        assert response.content.startswith(b"%PDF")
+
+    def test_student_card_forbidden_for_unrelated_teacher(self, client, school):
+        other = TeacherFactory()
+        assert login(client, other.user).get(self.student_url(school)).status_code == 403
+
+    def test_student_card_allowed_for_office(self, client, school):
+        admin = UserFactory(is_staff=True)
+        assert login(client, admin).get(self.student_url(school)).status_code == 200
+
+    def test_anonymous_redirected(self, client, school):
+        assert client.get(self.student_url(school)).status_code == 302
+
+    def test_class_cards_for_homeroom_teacher(self, client, school):
+        response = login(client, school.teacher.user).get(self.class_url(school))
+        assert response.status_code == 200
+        assert response.content.startswith(b"%PDF")
+
+    def test_class_cards_forbidden_for_other_teacher(self, client, school):
+        other = TeacherFactory()
+        assert login(client, other.user).get(self.class_url(school)).status_code == 403
+
+    def test_class_cards_404_when_term_is_from_another_year(self, client, school):
+        from tests.factories import AcademicYearFactory
+
+        foreign_term = AcademicYearFactory().terms.get(number=1)
+        url = reverse(
+            "core:class-report-cards-pdf", args=[school.school_class.id, foreign_term.id]
+        )
+        assert login(client, school.teacher.user).get(url).status_code == 404
+
+
+@pytest.mark.django_db
+class TestOfficeDashboard:
+    def test_staff_home_shows_roll_gaps_and_missing_grades(self, client, school):
+        admin = UserFactory(is_staff=True)
+        content = login(client, admin).get(reverse("core:home")).content.decode()
+        assert "not taken" in content
+        assert "Sections without grades yet" in content
+        assert school.subjects[0].name in content
+
+    def test_roll_badge_flips_after_attendance(self, client, school):
+        from django.utils import timezone as tz
+
+        from core import services
+
+        services.save_attendance(
+            school.school_class,
+            tz.localdate(),
+            {s.id: "present" for s in school.students},
+            taken_by=school.teacher,
+        )
+        content = login(client, school.teacher.user).get(reverse("core:home")).content.decode()
+        assert "✓ taken" in content

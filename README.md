@@ -30,6 +30,7 @@ and **grade entry**. Everything else is back-office work the Django admin covers
 | Language | Python 3.11+ | Matches Django; easy to hire/learn |
 | Database | SQLite (dev) → Postgres (prod) via `DATABASE_URL` | Zero-setup dev, real DB in prod |
 | UI | Server-rendered Django templates; HTMX only if a screen demands it | No JS build chain to babysit |
+| PDFs | reportlab | Real PDF downloads, pip-only, no system libraries |
 | Auth | Django auth + Groups (`Admin`, `Teacher`) | Built-in, role checks via permissions |
 | Tests | pytest-django + factory_boy | Fast, readable |
 | Lint/format | ruff | One tool, fast |
@@ -105,8 +106,13 @@ not a foundation.
   (subject × term averages + year attendance summary). Access rules enforced
   and tested: homeroom teacher for roll, assigned teacher for gradebook,
   office staff everywhere.
-- **M4 — Reports & hardening.** Term report card (PDF), admin dashboard,
-  backups, deployment guide, role-permission audit.
+- **M4 — Reports & hardening.** ✅ Term report cards as real PDFs (per student,
+  or one batch file per class) with a printed *interim average* disclaimer
+  until the certification formula lands; office dashboard on the home page
+  (today's roll gaps, sections without grades, per-class PDF links);
+  `docs/deployment.md` (Postgres + gunicorn + nginx + HTTPS) and
+  `scripts/backup.sh` (nightly `pg_dump`, 30-day retention); permission audit
+  covered by the test suite (84 tests).
 - **Stretch (post-v1).** Parent/student read-only portal, Amharic localization,
   SMS/email notifications, per-period attendance.
 
@@ -125,8 +131,8 @@ homeroom ("main") teacher.
 
 Defaults for the rest, chosen as sensible and reversible: **English-only UI** at
 launch (templates kept translation-ready so Amharic can be layered on) ·
-**printable PDF report cards** land in M4 · scale assumed at a few hundred
-students / dozens of teachers.
+report cards ship as **PDF downloads** (per student + per-class batch) · scale
+assumed at a few hundred students / dozens of teachers.
 
 ## Getting started
 
@@ -148,3 +154,5 @@ python manage.py import_students data/sample_students.csv
 ```
 
 Dev uses SQLite automatically; set `DATABASE_URL` for Postgres in production.
+Going live: `docs/deployment.md` (server, HTTPS, nightly backups via
+`scripts/backup.sh`, and the office's first-run checklist).
